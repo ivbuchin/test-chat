@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Комната — онлайн-чат</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='5' fill='%230d0f14'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23ee8fae'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<noscript><p class="noscript">Для чата нужен включённый JavaScript.</p></noscript>
+<div id="app" v-cloak>
+
+  <!-- Вход -->
+  <div v-if="!joined" class="gate">
+    <form class="login" @submit.prevent="login" novalidate>
+      <p class="brand"><span class="mark" aria-hidden="true"></span>Комната</p>
+      <label for="name" class="ask">Как вас зовут?</label>
+      <p class="hint">Это имя увидят все, кто сейчас в чате.</p>
+      <input id="name" v-model="nameInput" autocomplete="nickname" autocapitalize="words" spellcheck="false" autofocus
+             :aria-invalid="error ? 'true' : 'false'" aria-describedby="login-error">
+      <div class="login-row">
+        <button class="primary" :disabled="busy || !ready || !nameInput.trim()">
+          {{ busy ? 'Входим…' : 'Войти в чат' }}
+        </button>
+        <p id="login-error" class="error" role="alert">{{ error }}</p>
+      </div>
+    </form>
+  </div>
+
+  <!-- Чат -->
+  <div v-else class="room">
+    <section class="chat" aria-label="Чат">
+      <header class="bar">
+        <p class="brand"><span class="mark" aria-hidden="true"></span>Комната</p>
+        <p v-if="!online" class="chip off" role="status"><span class="dot" aria-hidden="true"></span>Нет связи. Переподключаемся…</p>
+        <button class="ghost people-toggle" type="button" :aria-expanded="showUsers ? 'true' : 'false'" aria-controls="people"
+                @click="showUsers = !showUsers">
+          <span class="dot live" aria-hidden="true"></span>{{ users.length }} в чате
+        </button>
+      </header>
+
+      <div class="feed-wrap">
+        <ol ref="feed" class="feed" role="log" aria-label="Сообщения" aria-live="polite" :aria-busy="loaded ? 'false' : 'true'"
+            tabindex="0" @scroll.passive="onScroll">
+          <template v-for="r in rows">
+            <li v-if="r.type === 'day'" :key="r.id" class="day"><span>{{ r.label }}</span></li>
+            <li v-else :key="r.id" :class="['row', r.type, { mine: r.name === me }]">
+              <time :datetime="r.iso">{{ r.time }}</time>
+              <p v-if="r.type === 'message'"><bdi class="author" :style="{ '--h': hue(r.name) }">{{ r.name }}</bdi>: {{ r.text }}</p>
+              <p v-else class="note"><bdi>{{ r.name }}</bdi> {{ r.type === 'join' ? 'вошёл в чат' : 'покинул чат' }}</p>
+            </li>
+          </template>
+        </ol>
+        <p v-if="loaded && !messages.length" class="empty">Здесь пока тихо. Напишите первым.</p>
+        <button v-if="unread" class="jump" type="button" @click="toBottom(true)">↓ Новые сообщения: {{ unread }}</button>
+      </div>
+
+      <form class="composer" @submit.prevent="send">
+        <label for="text" class="sr">Сообщение</label>
+        <textarea id="text" ref="text" v-model="text" rows="1" placeholder="Напишите сообщение"
+                  :aria-invalid="tooLong ? 'true' : 'false'" aria-describedby="count"
+                  @keydown.enter.exact="onEnter"></textarea>
+        <span id="count" class="count" :class="{ bad: tooLong }" v-show="len > 800">{{ len }}/{{ max }}</span>
+        <button class="primary send" :disabled="!canSend" aria-label="Отправить сообщение">Отправить</button>
+      </form>
+      <p class="error" role="alert">{{ error }}</p>
+    </section>
+
+    <aside id="people" :class="{ open: showUsers }" aria-label="Участники">
+      <h2>В чате <span class="num">{{ users.length }}</span></h2>
+      <ul>
+        <li v-for="u in users" :key="u">
+          <span class="avatar" :style="{ '--h': hue(u) }" aria-hidden="true">{{ initial(u) }}</span>
+          <span class="uname" :title="u">{{ u }}</span><span v-if="u === me" class="you">вы</span>
+        </li>
+      </ul>
+      <button class="ghost rename" type="button" @click="logout">Сменить имя</button>
+    </aside>
+  </div>
+</div>
+<script src="assets/vue.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

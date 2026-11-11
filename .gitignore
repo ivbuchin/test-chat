@@ -1,0 +1,9 @@
+.env
+.DS_Store
+*.log
+*.jar
+.idea/
+.vscode/
+# служебные заметки ревью
+REVIEW.md
+REVIEW-RESULT.md
